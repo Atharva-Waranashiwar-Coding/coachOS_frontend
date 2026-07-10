@@ -37,6 +37,7 @@ function withAuthentication(baseURL: string) {
 
 export const authClient = withAuthentication(env.authApiUrl);
 export const athleteClient = withAuthentication(env.athleteApiUrl);
+export const aiReviewClient = withAuthentication(env.aiReviewApiUrl);
 
 interface ValidationIssue {
   loc?: Array<string | number>;

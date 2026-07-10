@@ -1,6 +1,6 @@
 # CoachOS Frontend
 
-CoachOS Frontend is the protected coach workspace for athlete profiles, development goals, and timeline history. Stage 3 delivers the coach dashboard and Athlete Service workflows; signup, video, AI review, drill assignment, and the athlete portal remain outside this stage.
+CoachOS Frontend is the protected coach workspace for athlete profiles, development goals, timeline history, and AI review approval. AI review generation uses uploaded-video metadata plus coach-provided context; the browser never sends video bytes to the AI Review Service.
 
 ## Technology
 
@@ -25,7 +25,8 @@ src/
 │   ├── dashboard/       # Coach dashboard composition
 │   ├── athletes/        # List, profile, create/edit, hooks and types
 │   ├── goals/           # Goal forms, mutations, filters
-│   └── timeline/        # Timeline filters and event rendering
+│   ├── timeline/        # Timeline filters and event rendering
+│   └── ai-review/       # Review queue, request form, generated draft and approval actions
 ├── layouts/             # Public auth layout and protected app shell
 ├── lib/                 # Environment, session storage, formatters
 ├── routes/              # Protected and public-only guards
@@ -40,12 +41,13 @@ API functions do not depend on React. Feature hooks own query and mutation behav
 
 Copy `.env.example` to `.env` for local development. The application validates every variable during startup.
 
-| Variable               | Purpose                                           | Local example           |
-| ---------------------- | ------------------------------------------------- | ----------------------- |
-| `VITE_APP_NAME`        | Product name                                      | `CoachOS`               |
-| `VITE_APP_ENV`         | `development`, `test`, `staging`, or `production` | `development`           |
-| `VITE_AUTH_API_URL`    | Auth Service origin                               | `http://localhost:8000` |
-| `VITE_ATHLETE_API_URL` | Athlete Service origin                            | `http://localhost:8001` |
+| Variable                 | Purpose                                           | Local example           |
+| ------------------------ | ------------------------------------------------- | ----------------------- |
+| `VITE_APP_NAME`          | Product name                                      | `CoachOS`               |
+| `VITE_APP_ENV`           | `development`, `test`, `staging`, or `production` | `development`           |
+| `VITE_AUTH_API_URL`      | Auth Service origin                               | `http://localhost:8000` |
+| `VITE_ATHLETE_API_URL`   | Athlete Service origin                            | `http://localhost:8001` |
+| `VITE_AI_REVIEW_API_URL` | AI Review Service origin                          | `http://localhost:8004` |
 
 Vite embeds these values at build time. Do not put secrets in `VITE_*` variables.
 
@@ -62,20 +64,24 @@ The default frontend URL is `http://localhost:5173`.
 
 ## Routes
 
-| Route                       | Access      | Purpose                                   |
-| --------------------------- | ----------- | ----------------------------------------- |
-| `/login`                    | Public only | Coach login                               |
-| `/`                         | Protected   | Redirects to the dashboard                |
-| `/dashboard`                | Protected   | Active athlete summary and recent records |
-| `/athletes`                 | Protected   | Searchable and filterable athlete list    |
-| `/athletes/new`             | Protected   | Create an athlete                         |
-| `/athletes/:athleteId`      | Protected   | Overview, goals, and timeline             |
-| `/athletes/:athleteId/edit` | Protected   | Edit an athlete                           |
-| `*`                         | Any         | Not-found page                            |
+| Route                          | Access      | Purpose                                   |
+| ------------------------------ | ----------- | ----------------------------------------- |
+| `/login`                       | Public only | Coach login                               |
+| `/`                            | Protected   | Redirects to the dashboard                |
+| `/dashboard`                   | Protected   | Active athlete summary and recent records |
+| `/athletes`                    | Protected   | Searchable and filterable athlete list    |
+| `/athletes/new`                | Protected   | Create an athlete                         |
+| `/athletes/:athleteId`         | Protected   | Overview, goals, and timeline             |
+| `/athletes/:athleteId/edit`    | Protected   | Edit an athlete                           |
+| `/reviews`                     | Protected   | AI review queue                           |
+| `/reviews/:reviewId`           | Protected   | Generated review and coach actions        |
+| `/athletes/:athleteId/reviews` | Protected   | Athlete-filtered review queue             |
+| `/videos/:videoId/reviews/new` | Protected   | Request a review for an uploaded video    |
+| `*`                            | Any         | Not-found page                            |
 
 ## Backend Integration
 
-The Auth Service provides `POST /auth/login` and `GET /auth/me`. The Athlete Service provides `/api/v1/athletes`, nested goal endpoints, and athlete timeline endpoints. Query requests pass `AbortSignal` to Axios so unmounted reads can be cancelled.
+The Auth Service provides `POST /auth/login` and `GET /auth/me`. The Athlete Service provides `/api/v1/athletes`, nested goal endpoints, and athlete timeline endpoints. The AI Review Service provides asynchronous review requests, status polling, structured drafts, and coach approval/retry/cancel actions. Query requests pass `AbortSignal` to Axios so unmounted reads can be cancelled.
 
 Axios normalizes FastAPI detail strings, validation lists, the CoachOS error envelope, network failures, and common HTTP statuses. A protected `401` clears the token, authenticated user, and query cache; route guards then send the coach to `/login`. Backend `422` field errors are applied to matching form controls.
 
@@ -115,7 +121,8 @@ docker run --rm -p 8080:80 coachos-frontend
 - Dashboard metrics are derived only from the first loaded athlete page; no aggregate endpoint exists yet.
 - Goal deadlines and timeline activity are athlete-scoped and appear on profiles instead of a dashboard-wide feed.
 - Access tokens have no refresh-token workflow yet. Expiration returns the coach to login.
-- Video, AI review, settings, drill assignment, and athlete-facing experiences remain future stages.
+- Video upload selection is still a Media Service workflow; the new-review route expects an uploaded video ID and its practice session ID.
+- Coach edits currently remain a backend API capability; the detail page renders generated structured content and approval workflow first.
 
 ## Future Stages
 

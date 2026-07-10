@@ -16,10 +16,10 @@ import { env } from "../lib/env";
 const nav = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { label: "Athletes", path: "/athletes", icon: Users },
+  { label: "AI Reviews", path: "/reviews", icon: BrainCircuit },
 ];
 const future = [
   { label: "Videos", icon: Video },
-  { label: "AI Reviews", icon: BrainCircuit },
   { label: "Settings", icon: Settings },
 ];
 const titles: Record<string, string> = {

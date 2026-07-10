@@ -11,6 +11,10 @@ const envSchema = z.object({
     .string()
     .url()
     .transform((value) => value.replace(/\/$/, "")),
+  VITE_AI_REVIEW_API_URL: z
+    .string()
+    .url()
+    .transform((value) => value.replace(/\/$/, "")),
 });
 
 const parsed = envSchema.safeParse(import.meta.env);
@@ -26,5 +30,6 @@ export const env = {
   appEnv: parsed.data.VITE_APP_ENV,
   authApiUrl: parsed.data.VITE_AUTH_API_URL,
   athleteApiUrl: parsed.data.VITE_ATHLETE_API_URL,
+  aiReviewApiUrl: parsed.data.VITE_AI_REVIEW_API_URL,
   isDevelopment: parsed.data.VITE_APP_ENV === "development",
 } as const;
