@@ -7,6 +7,9 @@ import { LoginPage } from "../features/auth/pages/LoginPage";
 import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
 import { NewReviewPage } from "../features/ai-review/pages/NewReviewPage";
 import { ReviewDetailPage } from "../features/ai-review/pages/ReviewDetailPage";
+import { ReviewEditPage } from "../features/ai-review/pages/ReviewEditPage";
+import { ReviewHistoryPage } from "../features/ai-review/pages/ReviewHistoryPage";
+import { ReviewPreviewPage } from "../features/ai-review/pages/ReviewPreviewPage";
 import { ReviewsPage } from "../features/ai-review/pages/ReviewsPage";
 import { AppLayout } from "../layouts/AppLayout";
 import { AuthLayout } from "../layouts/AuthLayout";
@@ -28,6 +31,15 @@ export function AppRouter() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/reviews" element={<ReviewsPage />} />
           <Route path="/reviews/:reviewId" element={<ReviewDetailPage />} />
+          <Route path="/reviews/:reviewId/edit" element={<ReviewEditPage />} />
+          <Route
+            path="/reviews/:reviewId/preview"
+            element={<ReviewPreviewPage />}
+          />
+          <Route
+            path="/reviews/:reviewId/history"
+            element={<ReviewHistoryPage />}
+          />
           <Route
             path="/athletes/:athleteId/reviews"
             element={<ReviewsPage />}

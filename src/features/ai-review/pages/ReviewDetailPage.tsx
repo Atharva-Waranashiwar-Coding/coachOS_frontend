@@ -1,230 +1,365 @@
-import { Check, Edit3, RotateCcw, Save, X } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Check, Eye, History, Pencil, X } from "lucide-react";
+import { useState } from "react";
+import { Link, useParams } from "react-router-dom";
 import { normalizeApiError } from "../../../api/api-client";
 import { Badge } from "../../../components/common/Badge";
 import { Button } from "../../../components/common/Button";
 import { Card } from "../../../components/common/Card";
-import { PageHeader } from "../../../components/common/PageHeader";
+import { Dialog } from "../../../components/feedback/Dialog";
 import { ErrorState, PageLoading } from "../../../components/feedback/States";
 import { useToast } from "../../../components/feedback/Toast";
 import { formatEnum } from "../../../lib/formatters";
+import { ReviewSections } from "../components/ReviewSections";
 import {
+  useApproveReview,
+  useRejectReview,
   useReview,
-  useReviewTransition,
-  useSaveReviewDraft,
 } from "../hooks/useReviews";
+import type { RejectionCategory, ReviewVisibility } from "../types";
 
 export function ReviewDetailPage() {
   const { reviewId = "" } = useParams();
   const review = useReview(reviewId);
-  const transition = useReviewTransition(reviewId);
-  const saveDraft = useSaveReviewDraft(reviewId);
+  const approve = useApproveReview(reviewId);
+  const reject = useRejectReview(reviewId);
   const { showToast } = useToast();
-  const [editing, setEditing] = useState(false);
-  const [summary, setSummary] = useState("");
-  const effectiveResult = review.data?.latest_revision ?? review.data?.result;
-  useEffect(
-    () => setSummary(effectiveResult?.summary ?? ""),
-    [effectiveResult?.summary],
-  );
-  if (review.isLoading) return <PageLoading label="Loading AI review" />;
+  const [approvalOpen, setApprovalOpen] = useState(false);
+  const [rejectionOpen, setRejectionOpen] = useState(false);
+  if (review.isLoading) return <PageLoading label="Loading coach review" />;
   if (review.isError || !review.data)
     return (
       <ErrorState
-        message="Unable to load this AI review."
+        message="Unable to load this review."
         onRetry={() => review.refetch()}
       />
     );
   const item = review.data;
-  const act = async (action: "approve" | "reject" | "retry" | "cancel") => {
-    try {
-      await transition.mutateAsync(action);
-      showToast(`Review ${action}ed`);
-    } catch (error) {
-      showToast(normalizeApiError(error).message, "error");
-    }
-  };
-  const save = async () => {
-    if (!effectiveResult) return;
-    try {
-      await saveDraft.mutateAsync({
-        ...effectiveResult,
-        summary,
-        coach_notes: item.latest_revision?.coach_notes ?? null,
-      });
-      setEditing(false);
-      showToast("Coach revision saved");
-    } catch (error) {
-      showToast(normalizeApiError(error).message, "error");
-    }
-  };
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={`${formatEnum(item.review_type)} review`}
-        description={`Created ${new Date(item.created_at).toLocaleString()}`}
-        actions={
-          <>
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-ink">
+              {formatEnum(item.review_type)} review
+            </h1>
             <Badge
               tone={
                 item.status === "approved"
                   ? "green"
-                  : item.status === "failed"
+                  : item.status === "rejected"
                     ? "red"
                     : "amber"
               }
             >
               {formatEnum(item.status)}
             </Badge>
-            {item.status === "generated" && (
-              <>
-                <Button
-                  variant="secondary"
-                  icon={Edit3}
-                  onClick={() => setEditing(true)}
-                >
-                  Edit summary
-                </Button>
-                <Button
-                  icon={Check}
-                  isLoading={transition.isPending}
-                  onClick={() => act("approve")}
-                >
-                  Approve
-                </Button>
-                <Button
-                  variant="secondary"
-                  icon={X}
-                  onClick={() => act("reject")}
-                >
-                  Reject
-                </Button>
-              </>
-            )}
-            {item.status === "failed" && (
-              <Button icon={RotateCcw} onClick={() => act("retry")}>
-                Retry
-              </Button>
-            )}
-            {(item.status === "pending" || item.status === "processing") && (
-              <Button
-                variant="secondary"
-                icon={X}
-                onClick={() => act("cancel")}
-              >
-                Cancel
-              </Button>
-            )}
-          </>
-        }
-      />
-      {item.failure_reason && <ErrorState message={item.failure_reason} />}
-      {editing && effectiveResult && (
-        <Card>
-          <label className="block text-sm font-semibold text-ink">
-            Coach summary
-            <textarea
-              value={summary}
-              onChange={(event) => setSummary(event.target.value)}
-              className="mt-1.5 min-h-32 w-full rounded-md border border-line px-3 py-2 font-normal"
-            />
-          </label>
-          <div className="mt-4 flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setEditing(false)}>
-              Cancel
-            </Button>
-            <Button icon={Save} isLoading={saveDraft.isPending} onClick={save}>
-              Save revision
-            </Button>
           </div>
-        </Card>
-      )}
-      {item.status === "generated" ||
-      item.status === "approved" ||
-      item.status === "rejected" ? (
-        <ReviewContent review={item} />
-      ) : (
-        <Card>
-          <p className="font-semibold text-ink">Generation is in progress</p>
           <p className="mt-1 text-sm text-gray-600">
-            This page refreshes automatically while the review worker is
-            processing the request.
+            Generated{" "}
+            {item.generated_at
+              ? new Date(item.generated_at).toLocaleString()
+              : "pending"}{" "}
+            · Revision {item.latest_revision_number}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {item.allowed_actions.can_edit && (
+            <Link to={`/reviews/${item.id}/edit`}>
+              <Button variant="secondary" icon={Pencil}>
+                Edit
+              </Button>
+            </Link>
+          )}
+          {item.allowed_actions.can_preview && (
+            <Link to={`/reviews/${item.id}/preview`}>
+              <Button variant="secondary" icon={Eye}>
+                Preview
+              </Button>
+            </Link>
+          )}
+          <Link to={`/reviews/${item.id}/history`}>
+            <Button variant="secondary" icon={History}>
+              History
+            </Button>
+          </Link>
+          {item.allowed_actions.can_approve && (
+            <Button icon={Check} onClick={() => setApprovalOpen(true)}>
+              Approve
+            </Button>
+          )}
+          {item.allowed_actions.can_reject && (
+            <Button
+              variant="danger"
+              icon={X}
+              onClick={() => setRejectionOpen(true)}
+            >
+              Reject
+            </Button>
+          )}
+        </div>
+      </header>
+      {item.approved_snapshot && (
+        <Card className="border-green-200 bg-green-50">
+          <p className="font-semibold text-green-900">
+            Immutable approved snapshot ·{" "}
+            {formatEnum(item.approved_snapshot.visibility)}
+          </p>
+          <p className="mt-1 text-sm text-green-800">
+            Approved{" "}
+            {new Date(item.approved_snapshot.approved_at).toLocaleString()}
           </p>
         </Card>
       )}
+      {item.result && (
+        <section>
+          <p className="mb-3 text-xs font-semibold uppercase text-gray-500">
+            Original AI output
+          </p>
+          <ReviewSections
+            content={{
+              ...item.result,
+              observations: item.result.observations.map((observation) => ({
+                ...observation,
+                coach_verified: observation.coach_verified ?? false,
+              })),
+            }}
+            limitations={item.result.limitations}
+          />
+        </section>
+      )}
+      {item.active_draft && (
+        <section>
+          <p className="mb-3 text-xs font-semibold uppercase text-brand-700">
+            {item.active_draft.source === "revision"
+              ? `Active coach revision ${item.active_draft.revision_number}`
+              : "Active generated draft"}
+          </p>
+          <ReviewSections content={item.active_draft} />
+          <Card>
+            <h2 className="font-bold text-ink">Private coach notes</h2>
+            <p className="mt-2 text-sm text-gray-600">
+              {item.active_draft.coach_notes || "No private notes."}
+            </p>
+            <h2 className="mt-5 font-bold text-ink">Athlete message</h2>
+            <p className="mt-2 text-sm text-gray-600">
+              {item.active_draft.athlete_message ||
+                "No athlete-facing message."}
+            </p>
+          </Card>
+        </section>
+      )}
+      <ApprovalDialog
+        open={approvalOpen}
+        onClose={() => setApprovalOpen(false)}
+        revisionNumber={item.latest_revision_number}
+        revisionId={item.active_draft?.revision_id}
+        athleteMessage={item.active_draft?.athlete_message}
+        onApproved={() => {
+          setApprovalOpen(false);
+          showToast("Review approved");
+        }}
+        mutation={approve}
+      />
+      <RejectionDialog
+        open={rejectionOpen}
+        onClose={() => setRejectionOpen(false)}
+        revisionNumber={item.latest_revision_number}
+        onRejected={() => {
+          setRejectionOpen(false);
+          showToast("Review rejected");
+        }}
+        mutation={reject}
+      />
     </div>
   );
 }
 
-function ReviewContent({
-  review,
+function ApprovalDialog({
+  open,
+  onClose,
+  revisionNumber,
+  revisionId,
+  athleteMessage,
+  onApproved,
+  mutation,
 }: {
-  review: NonNullable<ReturnType<typeof useReview>["data"]>;
+  open: boolean;
+  onClose: () => void;
+  revisionNumber: number;
+  revisionId?: string | null;
+  athleteMessage?: string | null;
+  onApproved: () => void;
+  mutation: ReturnType<typeof useApproveReview>;
 }) {
-  const result = review.latest_revision ?? review.result;
-  if (!result)
-    return (
-      <Card>
-        <p className="text-sm text-gray-600">
-          No structured result is available.
-        </p>
-      </Card>
-    );
+  const [visibility, setVisibility] = useState<ReviewVisibility>("coach_only");
+  const [message, setMessage] = useState(athleteMessage ?? "");
+  const [confirmed, setConfirmed] = useState(false);
+  const { showToast } = useToast();
+  const submit = async () => {
+    try {
+      await mutation.mutateAsync({
+        revision_id: revisionId,
+        expected_revision_number: revisionNumber,
+        visibility,
+        athlete_message: message || null,
+        confirmation: confirmed,
+      });
+      onApproved();
+    } catch (error) {
+      showToast(normalizeApiError(error).message, "error");
+    }
+  };
   return (
-    <div className="space-y-5">
-      <Card>
-        <h2 className="text-lg font-bold text-ink">Summary</h2>
-        <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-gray-700">
-          {result.summary}
-        </p>
-      </Card>
-      <section className="grid gap-5 lg:grid-cols-2">
-        <Card>
-          <h2 className="font-bold text-ink">Strengths</h2>
-          <ul className="mt-3 space-y-3">
-            {result.strengths.map((value) => (
-              <li key={value.title}>
-                <p className="font-semibold text-sm">{value.title}</p>
-                <p className="text-sm text-gray-600">{value.description}</p>
-              </li>
-            ))}
-          </ul>
-        </Card>
-        <Card>
-          <h2 className="font-bold text-ink">Improvement areas</h2>
-          <ul className="mt-3 space-y-3">
-            {result.improvement_areas.map((value) => (
-              <li key={value.title}>
-                <p className="font-semibold text-sm">{value.title}</p>
-                <p className="text-sm text-gray-600">{value.description}</p>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      </section>
-      <Card>
-        <h2 className="font-bold text-ink">Recommended drills</h2>
-        <div className="mt-3 space-y-4">
-          {result.recommended_drills.map((drill) => (
-            <div key={drill.name}>
-              <p className="font-semibold text-sm">{drill.name}</p>
-              <p className="text-sm text-gray-600">{drill.description}</p>
-              <p className="mt-1 text-xs text-gray-500">{drill.reason}</p>
-            </div>
-          ))}
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title="Approve immutable snapshot"
+      description="Approval locks this review and creates the athlete-facing snapshot."
+    >
+      <div className="space-y-4">
+        <fieldset>
+          <legend className="text-sm font-semibold text-ink">Visibility</legend>
+          <label className="mt-2 flex gap-2 text-sm">
+            <input
+              type="radio"
+              checked={visibility === "coach_only"}
+              onChange={() => setVisibility("coach_only")}
+            />
+            Coach only
+          </label>
+          <label className="mt-2 flex gap-2 text-sm">
+            <input
+              type="radio"
+              checked={visibility === "athlete_visible"}
+              onChange={() => setVisibility("athlete_visible")}
+            />
+            Visible to athlete
+          </label>
+        </fieldset>
+        <label className="block text-sm font-semibold">
+          Athlete message
+          <textarea
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+            className="mt-1 w-full rounded-md border border-line px-3 py-2 font-normal"
+          />
+        </label>
+        <label className="flex gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={confirmed}
+            onChange={(event) => setConfirmed(event.target.checked)}
+          />
+          I understand approval creates an immutable snapshot.
+        </label>
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            isLoading={mutation.isPending}
+            disabled={!confirmed}
+            onClick={submit}
+          >
+            Approve review
+          </Button>
         </div>
-      </Card>
-      <Card>
-        <h2 className="font-bold text-ink">Evidence limitations</h2>
-        {"limitations" in result && (
-          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-gray-600">
-            {result.limitations.map((value) => (
-              <li key={value}>{value}</li>
+      </div>
+    </Dialog>
+  );
+}
+function RejectionDialog({
+  open,
+  onClose,
+  revisionNumber,
+  onRejected,
+  mutation,
+}: {
+  open: boolean;
+  onClose: () => void;
+  revisionNumber: number;
+  onRejected: () => void;
+  mutation: ReturnType<typeof useRejectReview>;
+}) {
+  const [category, setCategory] = useState<RejectionCategory | "">("");
+  const [reason, setReason] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
+  const { showToast } = useToast();
+  const submit = async () => {
+    if (!category) return;
+    try {
+      await mutation.mutateAsync({
+        category,
+        reason: reason || null,
+        expected_revision_number: revisionNumber,
+        confirmation: confirmed,
+      });
+      onRejected();
+    } catch (error) {
+      showToast(normalizeApiError(error).message, "error");
+    }
+  };
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title="Reject AI draft"
+      description="Rejection is final for this draft and remains coach-only."
+    >
+      <div className="space-y-4">
+        <label className="block text-sm font-semibold">
+          Reason category
+          <select
+            value={category}
+            onChange={(event) =>
+              setCategory(event.target.value as RejectionCategory)
+            }
+            className="mt-1 w-full rounded-md border border-line px-3 py-2 font-normal"
+          >
+            <option value="">Select a category</option>
+            {[
+              "inaccurate",
+              "insufficient",
+              "unsafe",
+              "irrelevant",
+              "too_generic",
+              "inadequate_context",
+              "other",
+            ].map((value) => (
+              <option key={value}>{value.replace(/_/g, " ")}</option>
             ))}
-          </ul>
-        )}
-      </Card>
-    </div>
+          </select>
+        </label>
+        <label className="block text-sm font-semibold">
+          Private reason
+          <textarea
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            className="mt-1 w-full rounded-md border border-line px-3 py-2 font-normal"
+          />
+        </label>
+        <label className="flex gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={confirmed}
+            onChange={(event) => setConfirmed(event.target.checked)}
+          />
+          I understand this draft cannot be edited after rejection.
+        </label>
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            isLoading={mutation.isPending}
+            disabled={!confirmed || !category}
+            onClick={submit}
+          >
+            Reject review
+          </Button>
+        </div>
+      </div>
+    </Dialog>
   );
 }
