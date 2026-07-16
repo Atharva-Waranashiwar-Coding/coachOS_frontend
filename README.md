@@ -130,12 +130,18 @@ npm run build
 npm run preview
 ```
 
-The container builds static assets and serves them with Nginx. Its configuration falls back to `index.html` for client-side routes and applies immutable caching only to static assets.
+The multi-stage container builds static assets with Node 22 and serves them as non-root UID `101` using unprivileged Nginx. Its configuration falls back to `index.html` for client-side routes, applies immutable caching only to static assets, and exposes `/health/live`, `/health/ready`, and `/nginx_status`.
 
 ```bash
 docker build -t coachos-frontend .
-docker run --rm -p 8080:80 coachos-frontend
+docker run --rm -p 8080:8080 coachos-frontend
 ```
+
+Production images default API base URLs to same-origin paths: `/auth-api`, `/athlete-api`, `/media-api`, and `/ai-review-api`. The edge Nginx configuration in `coachos-infra` routes those paths to internal services, applies HTTPS and rate limits, and avoids exposing backend ports publicly.
+
+## CI And Operations
+
+GitHub Actions runs ESLint, TypeScript checks, Vitest, the Vite production build, and Docker Buildx. Main-branch pushes publish SHA and `latest` images to GHCR. Nginx metrics are collected through an exporter sidecar, and container logs are aggregated by Promtail and Loki.
 
 ## Known Limitations
 

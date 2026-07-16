@@ -1,24 +1,22 @@
 import { z } from "zod";
 
+const apiBaseUrl = z
+  .string()
+  .trim()
+  .min(1)
+  .refine(
+    (value) => value.startsWith("/") || URL.canParse(value),
+    "Must be an absolute URL or root-relative path",
+  )
+  .transform((value) => value.replace(/\/$/, ""));
+
 const envSchema = z.object({
   VITE_APP_NAME: z.string().trim().min(1),
   VITE_APP_ENV: z.enum(["development", "test", "staging", "production"]),
-  VITE_AUTH_API_URL: z
-    .string()
-    .url()
-    .transform((value) => value.replace(/\/$/, "")),
-  VITE_ATHLETE_API_URL: z
-    .string()
-    .url()
-    .transform((value) => value.replace(/\/$/, "")),
-  VITE_AI_REVIEW_API_URL: z
-    .string()
-    .url()
-    .transform((value) => value.replace(/\/$/, "")),
-  VITE_MEDIA_API_URL: z
-    .string()
-    .url()
-    .transform((value) => value.replace(/\/$/, "")),
+  VITE_AUTH_API_URL: apiBaseUrl,
+  VITE_ATHLETE_API_URL: apiBaseUrl,
+  VITE_AI_REVIEW_API_URL: apiBaseUrl,
+  VITE_MEDIA_API_URL: apiBaseUrl,
 });
 
 const parsed = envSchema.safeParse(import.meta.env);
