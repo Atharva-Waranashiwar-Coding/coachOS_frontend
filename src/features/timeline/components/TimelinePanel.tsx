@@ -10,7 +10,7 @@ import {
   Video,
 } from "lucide-react";
 import { type ComponentType } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { normalizeApiError } from "../../../api/api-client";
 import { Button } from "../../../components/common/Button";
 import { Badge } from "../../../components/common/Badge";
@@ -65,6 +65,7 @@ const eventTypes = [
   "coach_review_approved",
   "coach_review_rejected",
   "drill_assigned",
+  "drill_started",
   "drill_updated",
   "drill_completed",
   "drill_cancelled",
@@ -229,6 +230,15 @@ export function TimelinePanel({ athleteId }: { athleteId: string }) {
                           ))}
                         </dl>
                       )}
+                      {event.source_entity_type === "drill_assignment" &&
+                        event.source_entity_id && (
+                          <Link
+                            className="mt-2 inline-block text-xs font-semibold text-brand-700"
+                            to={`/athletes/${athleteId}/drills/${event.source_entity_id}`}
+                          >
+                            View assignment
+                          </Link>
+                        )}
                     </div>
                   </li>
                 );

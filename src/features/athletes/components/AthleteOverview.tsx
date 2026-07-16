@@ -6,6 +6,7 @@ import {
   formatEnum,
 } from "../../../lib/formatters";
 import type { AthleteDetail } from "../types";
+import { AthleteAccessPanel } from "./AthleteAccessPanel";
 
 function Detail({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -78,6 +79,7 @@ export function AthleteOverview({ athlete }: { athlete: AthleteDetail }) {
         </Card>
       </div>
       <aside className="space-y-5">
+        <AthleteAccessPanel athleteId={athlete.id} />
         <Card className="border-amber-200 bg-amber-50/50 p-5 sm:p-6">
           <div className="flex items-center gap-2">
             <ShieldAlert className="h-5 w-5 text-amber-700" />

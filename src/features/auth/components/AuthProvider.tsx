@@ -58,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(response.access_token);
       const currentUser = await getCurrentUser();
       setUser(currentUser);
+      return currentUser;
     } catch (error) {
       tokenStorage.clear();
       setToken(null);
@@ -74,6 +75,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       token,
       isAuthenticated: Boolean(token && user),
       isLoading,
+      role: user?.role ?? null,
+      isCoach: user?.role === "coach",
+      isAthlete: user?.role === "athlete",
       login,
       logout,
     }),

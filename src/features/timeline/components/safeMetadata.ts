@@ -6,6 +6,12 @@ const labels: Record<string, string> = {
   video_id: "Video",
   category: "Category",
   changed: "Updated",
+  assignment_id: "Assignment",
+  drill_id: "Drill",
+  source_review_id: "Review",
+  priority: "Priority",
+  due_date: "Due date",
+  title: "Drill",
 };
 export function safeMetadata(
   metadata: Record<string, unknown>,

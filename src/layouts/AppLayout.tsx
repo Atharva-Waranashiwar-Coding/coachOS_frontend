@@ -1,5 +1,6 @@
 import {
   BrainCircuit,
+  Dumbbell,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -16,6 +17,7 @@ import { env } from "../lib/env";
 const nav = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { label: "Athletes", path: "/athletes", icon: Users },
+  { label: "Drill Library", path: "/drills", icon: Dumbbell },
   { label: "AI Reviews", path: "/reviews", icon: BrainCircuit },
 ];
 const future = [
@@ -26,6 +28,8 @@ const titles: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/athletes": "Athletes",
   "/athletes/new": "Add athlete",
+  "/drills": "Drill library",
+  "/drills/new": "Create drill",
 };
 
 function Navigation({ onNavigate }: { onNavigate?: () => void }) {
@@ -68,11 +72,15 @@ export function AppLayout() {
   const location = useLocation();
   const title =
     titles[location.pathname] ??
-    (location.pathname.endsWith("/edit")
-      ? "Edit athlete"
-      : location.pathname.startsWith("/athletes/")
-        ? "Athlete profile"
-        : env.appName);
+    (location.pathname.startsWith("/drills/")
+      ? location.pathname.endsWith("/edit")
+        ? "Edit drill"
+        : "Drill library"
+      : location.pathname.endsWith("/edit")
+        ? "Edit athlete"
+        : location.pathname.startsWith("/athletes/")
+          ? "Athlete profile"
+          : env.appName);
   return (
     <div className="min-h-screen bg-canvas">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-line bg-white px-4 py-5 lg:flex lg:flex-col">

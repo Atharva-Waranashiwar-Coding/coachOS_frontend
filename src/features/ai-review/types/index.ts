@@ -83,6 +83,9 @@ export interface ReviewResult extends Omit<ReviewContent, "observations"> {
 }
 export interface ApprovedSnapshot extends ReviewContent {
   id: string;
+  review_id?: string;
+  athlete_id?: string;
+  status?: "approved";
   source_revision_id?: string | null;
   approved_by_user_id: string;
   athlete_message?: string | null;

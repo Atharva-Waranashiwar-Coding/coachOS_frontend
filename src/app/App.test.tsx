@@ -2,19 +2,28 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
-import { athlete, server } from "../test/server";
+import {
+  assignment,
+  athlete,
+  athleteAssignment,
+  athleteUser,
+  drill,
+  server,
+} from "../test/server";
 import { authenticate, renderApp } from "../test/renderApp";
 
 describe("authentication", () => {
-  it("logs in and returns to the originally requested protected route", async () => {
+  it("logs in and opens the coach workspace", async () => {
     const user = userEvent.setup();
     renderApp("/athletes");
     expect(
-      await screen.findByRole("heading", { name: "Coach sign in" }),
+      await screen.findByRole("heading", { name: "Sign in to CoachOS" }),
     ).toBeInTheDocument();
     await user.type(screen.getByLabelText("Email"), "coach@example.com");
     await user.type(screen.getByLabelText("Password"), "password");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
+    expect(await screen.findByText("Welcome back")).toBeInTheDocument();
+    await user.click(screen.getByRole("link", { name: "Athletes" }));
     expect(
       await screen.findByRole("heading", { name: "Athletes", level: 1 }),
     ).toBeInTheDocument();
@@ -44,7 +53,7 @@ describe("authentication", () => {
     const logoutButtons = screen.getAllByTitle("Log out");
     await user.click(logoutButtons[0]!);
     expect(
-      await screen.findByRole("heading", { name: "Coach sign in" }),
+      await screen.findByRole("heading", { name: "Sign in to CoachOS" }),
     ).toBeInTheDocument();
     expect(window.sessionStorage.getItem("coachos.access-token")).toBeNull();
   });
@@ -58,7 +67,7 @@ describe("authentication", () => {
     );
     renderApp("/dashboard");
     expect(
-      await screen.findByRole("heading", { name: "Coach sign in" }),
+      await screen.findByRole("heading", { name: "Sign in to CoachOS" }),
     ).toBeInTheDocument();
     expect(window.sessionStorage.getItem("coachos.access-token")).toBeNull();
   });
@@ -305,5 +314,304 @@ describe("athlete workflows", () => {
     expect(
       screen.getByRole("heading", { name: "Page not found" }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("drill workflows", () => {
+  it("renders, filters, archives, and restores the drill library", async () => {
+    authenticate();
+    const requests: URL[] = [];
+    let archived = false;
+    server.use(
+      http.get("http://localhost:8001/api/v1/drills", ({ request }) => {
+        requests.push(new URL(request.url));
+        return HttpResponse.json({
+          items: [{ ...drill, status: archived ? "archived" : "active" }],
+          page: 1,
+          page_size: 12,
+          total: 1,
+          total_pages: 1,
+        });
+      }),
+      http.delete(`http://localhost:8001/api/v1/drills/${drill.id}`, () => {
+        archived = true;
+        return new HttpResponse(null, { status: 204 });
+      }),
+      http.post(
+        `http://localhost:8001/api/v1/drills/${drill.id}/restore`,
+        () => {
+          archived = false;
+          return HttpResponse.json(drill);
+        },
+      ),
+    );
+    const user = userEvent.setup();
+    renderApp("/drills");
+    expect(await screen.findByText(drill.title)).toBeInTheDocument();
+    await user.selectOptions(
+      screen.getByLabelText("Drill category"),
+      "footwork",
+    );
+    await waitFor(() =>
+      expect(
+        requests.some((url) => url.searchParams.get("category") === "footwork"),
+      ).toBe(true),
+    );
+    await user.type(screen.getByLabelText("Search drills"), "reaction");
+    await waitFor(() =>
+      expect(
+        requests.some(
+          (url) =>
+            url.searchParams.get("category") === "footwork" &&
+            url.searchParams.get("search") === "reaction",
+        ),
+      ).toBe(true),
+    );
+    await user.click(screen.getByRole("button", { name: "Archive" }));
+    await user.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Archive drill",
+      }),
+    );
+    await waitFor(() => expect(archived).toBe(true));
+  });
+
+  it("validates and creates a reusable drill", async () => {
+    authenticate();
+    let payload: Record<string, unknown> | undefined;
+    server.use(
+      http.post("http://localhost:8001/api/v1/drills", async ({ request }) => {
+        payload = (await request.json()) as Record<string, unknown>;
+        return HttpResponse.json({ ...drill, ...payload }, { status: 201 });
+      }),
+    );
+    const user = userEvent.setup();
+    renderApp("/drills/new");
+    await user.click(
+      await screen.findByRole("button", { name: "Create drill" }),
+    );
+    expect(await screen.findByText("Title is required")).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Title"), "Reaction ladder");
+    await user.type(
+      screen.getByLabelText("Instructions"),
+      "Complete three controlled rounds.",
+    );
+    await user.type(screen.getByLabelText("Equipment"), "cones, Cones, ladder");
+    await user.type(screen.getByLabelText("Tags"), "speed, reaction");
+    await user.click(screen.getByRole("button", { name: "Create drill" }));
+    await waitFor(() =>
+      expect(payload).toMatchObject({
+        title: "Reaction ladder",
+        equipment: ["cones", "Cones", "ladder"],
+        tags: ["speed", "reaction"],
+      }),
+    );
+  });
+
+  it("assigns from the library and an approved recommendation explicitly", async () => {
+    authenticate();
+    const payloads: Array<Record<string, unknown>> = [];
+    server.use(
+      http.post(
+        `http://localhost:8001/api/v1/athletes/${athlete.id}/drill-assignments`,
+        async ({ request }) => {
+          payloads.push((await request.json()) as Record<string, unknown>);
+          return HttpResponse.json(assignment, { status: 201 });
+        },
+      ),
+    );
+    const user = userEvent.setup();
+    const first = renderApp(`/athletes/${athlete.id}?tab=drills`);
+    await user.click(
+      await screen.findByRole("button", { name: "Assign drill" }),
+    );
+    await user.selectOptions(screen.getByLabelText("Library drill"), drill.id);
+    await user.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Assign drill",
+      }),
+    );
+    await waitFor(() =>
+      expect(payloads[0]).toMatchObject({
+        mode: "library",
+        drill_id: drill.id,
+      }),
+    );
+    first.unmount();
+
+    renderApp(
+      `/athletes/${athlete.id}?tab=drills&assign=review&review_id=55555555-5555-4555-8555-555555555555&recommendation=0`,
+    );
+    expect(
+      await screen.findByText("Approved crossover step"),
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByLabelText(
+        "Save this recommendation as a new private library drill",
+      ),
+    );
+    await user.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Assign drill",
+      }),
+    );
+    await waitFor(() =>
+      expect(payloads[1]).toMatchObject({
+        mode: "review",
+        source_review_id: "55555555-5555-4555-8555-555555555555",
+        source_recommendation_index: 0,
+        save_to_library: true,
+      }),
+    );
+  });
+
+  it("starts and completes an assignment with confirmation details", async () => {
+    authenticate();
+    const calls = { started: 0, completed: 0 };
+    server.use(
+      http.post(
+        `http://localhost:8001/api/v1/athletes/${athlete.id}/drill-assignments/${assignment.id}/start`,
+        () => {
+          calls.started += 1;
+          return HttpResponse.json({ ...assignment, status: "in_progress" });
+        },
+      ),
+      http.post(
+        `http://localhost:8001/api/v1/athletes/${athlete.id}/drill-assignments/${assignment.id}/complete`,
+        async ({ request }) => {
+          const body = (await request.json()) as {
+            actual_duration_minutes?: number;
+          };
+          if (body.actual_duration_minutes === 18) calls.completed += 1;
+          return HttpResponse.json({
+            ...assignment,
+            status: "completed",
+            completion_percentage: 100,
+          });
+        },
+      ),
+    );
+    const user = userEvent.setup();
+    renderApp(`/athletes/${athlete.id}/drills/${assignment.id}`);
+    await user.click(await screen.findByRole("button", { name: "Start" }));
+    await waitFor(() => expect(calls.started).toBe(1));
+    await user.click(screen.getByRole("button", { name: "Complete" }));
+    expect(
+      screen.getByRole("dialog", { name: "Complete assignment?" }),
+    ).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Actual duration"), "18");
+    await user.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Confirm completion",
+      }),
+    );
+    await waitFor(() => expect(calls.completed).toBe(1));
+  });
+});
+
+describe("athlete workspace", () => {
+  function useAthleteSession() {
+    server.use(
+      http.get("http://localhost:8000/auth/me", () =>
+        HttpResponse.json(athleteUser),
+      ),
+    );
+    authenticate();
+  }
+
+  it("restores the athlete role and redirects to the athlete dashboard", async () => {
+    useAthleteSession();
+    renderApp("/login");
+    expect(
+      await screen.findByRole("heading", { name: "Welcome, MJ" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("navigation", { name: "Athlete navigation" }),
+    ).toHaveLength(2);
+  });
+
+  it("keeps coach and athlete routes separated by role", async () => {
+    useAthleteSession();
+    const athleteView = renderApp("/dashboard");
+    expect(
+      await screen.findByRole("heading", {
+        name: "This page is not available",
+      }),
+    ).toBeInTheDocument();
+    athleteView.unmount();
+
+    server.use(
+      http.get("http://localhost:8000/auth/me", () =>
+        HttpResponse.json({
+          id: "22222222-2222-4222-8222-222222222222",
+          email: "coach@example.com",
+          role: "coach",
+        }),
+      ),
+    );
+    renderApp("/athlete/dashboard");
+    expect(
+      await screen.findByRole("heading", {
+        name: "This page is not available",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders athlete dashboard data and approved feedback", async () => {
+    useAthleteSession();
+    const first = renderApp("/athlete/dashboard");
+    expect(await screen.findByText("On track")).toBeInTheDocument();
+    expect(screen.getByText("Improve first-step speed")).toBeInTheDocument();
+    expect(
+      screen.getByText("approved feedback reviews available"),
+    ).toBeInTheDocument();
+    first.unmount();
+
+    renderApp("/athlete/feedback");
+    expect(
+      await screen.findByText("Keep building on your quick first step."),
+    ).toBeInTheDocument();
+  });
+
+  it("shows athlete-safe drill detail and submits progress", async () => {
+    useAthleteSession();
+    let submitted: Record<string, unknown> | undefined;
+    server.use(
+      http.post(
+        `http://localhost:8001/api/v1/athlete/drill-assignments/${athleteAssignment.id}/progress`,
+        async ({ request }) => {
+          submitted = (await request.json()) as Record<string, unknown>;
+          return HttpResponse.json({
+            ...athleteAssignment,
+            ...submitted,
+            status: "in_progress",
+          });
+        },
+      ),
+    );
+    const user = userEvent.setup();
+    renderApp(`/athlete/drills/${athleteAssignment.id}`);
+    expect(
+      await screen.findByText(athleteAssignment.instructions),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Private cue")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Cancel" }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Update progress" }));
+    const percentage = screen.getByLabelText("Completion percentage");
+    await user.clear(percentage);
+    await user.type(percentage, "40");
+    await user.type(
+      screen.getByLabelText("Note for your coach"),
+      "Worked through three rounds.",
+    );
+    await user.click(screen.getByRole("button", { name: "Save progress" }));
+    await waitFor(() =>
+      expect(submitted).toMatchObject({
+        completion_percentage: 40,
+        athlete_note: "Worked through three rounds.",
+      }),
+    );
   });
 });

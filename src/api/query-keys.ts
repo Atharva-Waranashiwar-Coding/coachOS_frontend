@@ -9,6 +9,28 @@ export const queryKeys = {
       ["athletes", id, "goals", filters ?? {}] as const,
     timeline: (id: string, filters?: object) =>
       ["athletes", id, "timeline", filters ?? {}] as const,
+    drills: (id: string, filters?: object) =>
+      ["athletes", id, "drill-assignments", filters ?? {}] as const,
+    drill: (id: string, assignmentId: string) =>
+      ["athletes", id, "drill-assignments", assignmentId] as const,
+  },
+  drills: {
+    all: ["drills"] as const,
+    list: (filters: object) => ["drills", "list", filters] as const,
+    detail: (id: string) => ["drills", "detail", id] as const,
   },
   dashboard: ["dashboard"] as const,
+  athlete: {
+    me: ["athlete", "me"] as const,
+    dashboard: ["athlete", "dashboard"] as const,
+    feedbackList: (filters: object) =>
+      ["athlete", "feedback", "list", filters] as const,
+    feedbackDetail: (id: string) =>
+      ["athlete", "feedback", "detail", id] as const,
+    assignments: (filters: object) =>
+      ["athlete", "assignments", filters] as const,
+    assignment: (id: string) => ["athlete", "assignment", id] as const,
+    timeline: (filters: object) => ["athlete", "timeline", filters] as const,
+    goals: (filters: object) => ["athlete", "goals", filters] as const,
+  },
 };

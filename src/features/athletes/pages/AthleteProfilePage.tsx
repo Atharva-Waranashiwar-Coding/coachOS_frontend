@@ -10,6 +10,7 @@ import { ErrorState, PageLoading } from "../../../components/feedback/States";
 import { useToast } from "../../../components/feedback/Toast";
 import { athleteName, formatEnum } from "../../../lib/formatters";
 import { GoalsPanel } from "../../goals/components/GoalsPanel";
+import { DrillAssignmentsPanel } from "../../drills/components/DrillAssignmentsPanel";
 import { TimelinePanel } from "../../timeline/components/TimelinePanel";
 import { AthleteOverview } from "../components/AthleteOverview";
 import {
@@ -18,11 +19,11 @@ import {
   useRestoreAthlete,
 } from "../hooks/useAthletes";
 
-type Tab = "overview" | "goals" | "timeline";
+type Tab = "overview" | "goals" | "drills" | "timeline";
 export function AthleteProfilePage() {
   const { athleteId = "" } = useParams();
   const [params, setParams] = useSearchParams();
-  const tab = (["overview", "goals", "timeline"] as const).includes(
+  const tab = (["overview", "goals", "drills", "timeline"] as const).includes(
     params.get("tab") as Tab,
   )
     ? (params.get("tab") as Tab)
@@ -105,7 +106,7 @@ export function AthleteProfilePage() {
         className="flex gap-1 overflow-x-auto border-b border-line"
         aria-label="Athlete profile sections"
       >
-        {(["overview", "goals", "timeline"] as const).map((value) => (
+        {(["overview", "goals", "drills", "timeline"] as const).map((value) => (
           <button
             key={value}
             className={`min-h-11 border-b-2 px-4 text-sm font-semibold capitalize ${tab === value ? "border-brand-600 text-brand-700" : "border-transparent text-gray-500 hover:text-ink"}`}
@@ -119,6 +120,7 @@ export function AthleteProfilePage() {
       </nav>
       {tab === "overview" && <AthleteOverview athlete={athlete} />}
       {tab === "goals" && <GoalsPanel athleteId={athleteId} />}
+      {tab === "drills" && <DrillAssignmentsPanel athleteId={athleteId} />}
       {tab === "timeline" && <TimelinePanel athleteId={athleteId} />}
       <ConfirmDialog
         open={confirmArchive}

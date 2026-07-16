@@ -1,6 +1,6 @@
 # CoachOS Frontend
 
-CoachOS Frontend is the protected coach workspace for athlete profiles, development goals, timeline history, and AI review approval. AI review generation uses uploaded-video metadata plus coach-provided context; the browser never sends video bytes to the AI Review Service.
+CoachOS Frontend is a role-aware web application with separate coach and athlete shells. Coaches manage profiles, goals, drills, timelines, and AI review approval. Athletes use dedicated APIs to view approved feedback, assignments, goals, safe timeline history, and a limited profile.
 
 ## Technology
 
@@ -26,8 +26,9 @@ src/
 │   ├── athletes/        # List, profile, create/edit, hooks and types
 │   ├── goals/           # Goal forms, mutations, filters
 │   ├── timeline/        # Timeline filters and event rendering
-│   └── ai-review/       # Review queue, request form, generated draft and approval actions
-├── layouts/             # Public auth layout and protected app shell
+│   ├── ai-review/       # Review queue, request form, generated draft and approval actions
+│   └── drills/          # Library, assignment modes, athlete drill lifecycle
+├── layouts/             # Auth, coach, and athlete app shells
 ├── lib/                 # Environment, session storage, formatters
 ├── routes/              # Protected and public-only guards
 ├── styles/              # Tailwind entry and global focus styles
@@ -48,6 +49,7 @@ Copy `.env.example` to `.env` for local development. The application validates e
 | `VITE_AUTH_API_URL`      | Auth Service origin                               | `http://localhost:8000` |
 | `VITE_ATHLETE_API_URL`   | Athlete Service origin                            | `http://localhost:8001` |
 | `VITE_AI_REVIEW_API_URL` | AI Review Service origin                          | `http://localhost:8004` |
+| `VITE_MEDIA_API_URL`     | Media Service origin                              | `http://localhost:8003` |
 
 Vite embeds these values at build time. Do not put secrets in `VITE_*` variables.
 
@@ -64,30 +66,45 @@ The default frontend URL is `http://localhost:5173`.
 
 ## Routes
 
-| Route                          | Access      | Purpose                                   |
-| ------------------------------ | ----------- | ----------------------------------------- |
-| `/login`                       | Public only | Coach login                               |
-| `/`                            | Protected   | Redirects to the dashboard                |
-| `/dashboard`                   | Protected   | Active athlete summary and recent records |
-| `/athletes`                    | Protected   | Searchable and filterable athlete list    |
-| `/athletes/new`                | Protected   | Create an athlete                         |
-| `/athletes/:athleteId`         | Protected   | Overview, goals, and timeline             |
-| `/athletes/:athleteId/edit`    | Protected   | Edit an athlete                           |
-| `/reviews`                     | Protected   | AI review queue                           |
-| `/reviews/:reviewId`           | Protected   | Generated review and coach actions        |
-| `/athletes/:athleteId/reviews` | Protected   | Athlete-filtered review queue             |
-| `/videos/:videoId/reviews/new` | Protected   | Request a review for an uploaded video    |
-| `*`                            | Any         | Not-found page                            |
+| Route                                       | Access      | Purpose                                   |
+| ------------------------------------------- | ----------- | ----------------------------------------- |
+| `/login`                                    | Public only | Coach or athlete login                    |
+| `/invitations/accept`                       | Public only | Athlete password setup                    |
+| `/`                                         | Protected   | Redirects to the dashboard                |
+| `/dashboard`                                | Protected   | Active athlete summary and recent records |
+| `/athletes`                                 | Protected   | Searchable and filterable athlete list    |
+| `/athletes/new`                             | Protected   | Create an athlete                         |
+| `/athletes/:athleteId`                      | Protected   | Overview, goals, and timeline             |
+| `/athletes/:athleteId/edit`                 | Protected   | Edit an athlete                           |
+| `/reviews`                                  | Protected   | AI review queue                           |
+| `/reviews/:reviewId`                        | Protected   | Generated review and coach actions        |
+| `/athletes/:athleteId/reviews`              | Protected   | Athlete-filtered review queue             |
+| `/videos/:videoId/reviews/new`              | Protected   | Request a review for an uploaded video    |
+| `/drills`                                   | Protected   | Search and manage the drill library       |
+| `/drills/new`                               | Protected   | Create a reusable drill                   |
+| `/drills/:drillId`                          | Protected   | Drill details                             |
+| `/drills/:drillId/edit`                     | Protected   | Edit an owned drill                       |
+| `/athletes/:athleteId/drills`               | Protected   | Athlete drill assignments                 |
+| `/athletes/:athleteId/drills/:assignmentId` | Protected   | Assignment details and lifecycle          |
+| `/athlete/dashboard`                        | Athlete     | Personal progress dashboard               |
+| `/athlete/feedback`                         | Athlete     | Approved athlete-visible feedback         |
+| `/athlete/feedback/:reviewId`               | Athlete     | Immutable approved feedback detail        |
+| `/athlete/drills`                           | Athlete     | Current and completed assignments         |
+| `/athlete/drills/:assignmentId`             | Athlete     | Start, progress, and completion actions   |
+| `/athlete/timeline`                         | Athlete     | Athlete-visible timeline                  |
+| `/athlete/goals`                            | Athlete     | Read-only goals                           |
+| `/athlete/profile`                          | Athlete     | Limited personal profile                  |
+| `*`                                         | Any         | Not-found page                            |
 
 ## Backend Integration
 
-The Auth Service provides `POST /auth/login` and `GET /auth/me`. The Athlete Service provides `/api/v1/athletes`, nested goal endpoints, and athlete timeline endpoints. The AI Review Service provides asynchronous review requests, status polling, structured drafts, and coach approval/retry/cancel actions. Query requests pass `AbortSignal` to Axios so unmounted reads can be cancelled.
+The Auth Service provides `POST /auth/login` and `GET /auth/me`. The Athlete Service provides athletes, goals, timeline, drill library, and assignment lifecycle endpoints. The AI Review Service provides asynchronous review requests, immutable approved recommendations, and coach approval actions. Query requests pass `AbortSignal` to Axios so unmounted reads can be cancelled.
 
 Axios normalizes FastAPI detail strings, validation lists, the CoachOS error envelope, network failures, and common HTTP statuses. A protected `401` clears the token, authenticated user, and query cache; route guards then send the coach to `/login`. Backend `422` field errors are applied to matching form controls.
 
 ## Authentication
 
-Login saves only the access token for the current browser tab and always verifies it with `/auth/me`. Protected routes preserve their requested path through login. Public-only routing prevents authenticated coaches from returning to login. Logout clears both credentials and cached server data.
+Login saves only the access token for the current browser tab and always verifies it with `/auth/me`. `RequireCoachRoute` and `RequireAthleteRoute` enforce distinct navigation shells and redirect wrong-role users to a safe unauthorized page. Coaches default to `/dashboard`; athletes default to `/athlete/dashboard`. Logout clears credentials and cached server data.
 
 ## Quality Commands
 
@@ -100,7 +117,7 @@ npm run build
 npm run format
 ```
 
-Tests use MSW and cover login success and failure, route guards, session restoration, logout, global `401`, athlete filters and pagination, profile data, create/edit validation, archive/restore, goals, timeline, empty/error/loading behavior, and the fallback route.
+Tests use MSW and cover authentication, role restoration and route separation, coach workflows, athlete dashboard and feedback rendering, athlete-safe drill detail, progress submission, drill library behavior, timeline, empty/error/loading behavior, and fallback routing.
 
 ## Production Build
 
@@ -118,12 +135,11 @@ docker run --rm -p 8080:80 coachos-frontend
 
 ## Known Limitations
 
-- Dashboard metrics are derived only from the first loaded athlete page; no aggregate endpoint exists yet.
-- Goal deadlines and timeline activity are athlete-scoped and appear on profiles instead of a dashboard-wide feed.
 - Access tokens have no refresh-token workflow yet. Expiration returns the coach to login.
 - Video upload selection is still a Media Service workflow; the new-review route expects an uploaded video ID and its practice session ID.
-- Coach edits currently remain a backend API capability; the detail page renders generated structured content and approval workflow first.
+- Athlete video playback is intentionally omitted until Media Service owns an explicit athlete-visible authorization signal.
+- Bundle code splitting is not yet configured; the current production build reports a non-blocking chunk-size warning.
 
 ## Future Stages
 
-Later stages can add aggregate dashboard endpoints, refresh-token rotation, video uploads, AI review and coach approval, drill assignment, athlete dashboards, progress insights, and deployment observability without changing the current feature boundaries.
+Later stages can add refresh-token rotation, recurring plans, richer progress insights, secure athlete video playback, and deployment observability without changing the current feature boundaries.

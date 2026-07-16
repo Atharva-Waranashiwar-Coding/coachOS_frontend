@@ -17,6 +17,17 @@ import type {
   TimelineParams,
 } from "../features/timeline/types";
 
+export interface AthleteInvitation {
+  athlete_id: string;
+  auth_user_id: string;
+  email: string;
+  status: "invited" | "active" | "disabled";
+  invited_at: string;
+  activated_at: string | null;
+  disabled_at: string | null;
+  development_invitation_url: string | null;
+}
+
 export async function listAthletes(
   params: AthleteListParams,
   signal?: AbortSignal,
@@ -116,4 +127,30 @@ export async function listTimeline(
     { params, signal },
   );
   return data;
+}
+
+export async function inviteAthlete(
+  id: string,
+  email: string,
+): Promise<AthleteInvitation> {
+  const { data } = await athleteClient.post<AthleteInvitation>(
+    `/api/v1/athletes/${id}/invite`,
+    { email },
+  );
+  return data;
+}
+
+export async function resendAthleteInvitation(
+  id: string,
+  email: string,
+): Promise<AthleteInvitation> {
+  const { data } = await athleteClient.post<AthleteInvitation>(
+    `/api/v1/athletes/${id}/invite/resend`,
+    { email },
+  );
+  return data;
+}
+
+export async function disableAthleteAccess(id: string): Promise<void> {
+  await athleteClient.post(`/api/v1/athletes/${id}/access/disable`);
 }

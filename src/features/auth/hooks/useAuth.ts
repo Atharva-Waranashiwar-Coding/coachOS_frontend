@@ -6,7 +6,10 @@ export interface AuthContextValue {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (credentials: LoginCredentials) => Promise<void>;
+  role: AuthUser["role"] | null;
+  isCoach: boolean;
+  isAthlete: boolean;
+  login: (credentials: LoginCredentials) => Promise<AuthUser>;
   logout: () => void;
 }
 

@@ -2,7 +2,8 @@ export interface AuthUser {
   id: string;
   email: string;
   role: "coach" | "athlete" | "admin";
-  is_active: boolean;
+  is_active?: boolean;
+  status?: "pending" | "active" | "disabled";
   is_verified?: boolean;
   created_at?: string;
   updated_at?: string;

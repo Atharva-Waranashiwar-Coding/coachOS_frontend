@@ -19,3 +19,11 @@ export async function getCurrentUser(): Promise<AuthUser> {
   const { data } = await authClient.get<AuthUser>("/auth/me");
   return data;
 }
+
+export async function acceptInvitation(payload: {
+  token: string;
+  password: string;
+  password_confirmation: string;
+}): Promise<void> {
+  await authClient.post("/auth/invitations/accept", payload);
+}

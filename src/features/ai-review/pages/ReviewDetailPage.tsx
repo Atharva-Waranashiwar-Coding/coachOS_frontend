@@ -1,4 +1,4 @@
-import { Check, Eye, History, Pencil, X } from "lucide-react";
+import { Check, Dumbbell, Eye, History, Pencil, X } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { normalizeApiError } from "../../../api/api-client";
@@ -82,6 +82,15 @@ export function ReviewDetailPage() {
               History
             </Button>
           </Link>
+          {item.status === "approved" && (
+            <Link
+              to={`/athletes/${item.athlete_id}?tab=drills&assign=review&review_id=${item.id}`}
+            >
+              <Button variant="secondary" icon={Dumbbell}>
+                Assign drills
+              </Button>
+            </Link>
+          )}
           {item.allowed_actions.can_approve && (
             <Button icon={Check} onClick={() => setApprovalOpen(true)}>
               Approve
@@ -99,16 +108,46 @@ export function ReviewDetailPage() {
         </div>
       </header>
       {item.approved_snapshot && (
-        <Card className="border-green-200 bg-green-50">
-          <p className="font-semibold text-green-900">
-            Immutable approved snapshot ·{" "}
-            {formatEnum(item.approved_snapshot.visibility)}
-          </p>
-          <p className="mt-1 text-sm text-green-800">
-            Approved{" "}
-            {new Date(item.approved_snapshot.approved_at).toLocaleString()}
-          </p>
-        </Card>
+        <div className="space-y-3">
+          <Card className="border-green-200 bg-green-50 p-5">
+            <p className="font-semibold text-green-900">
+              Immutable approved snapshot ·{" "}
+              {formatEnum(item.approved_snapshot.visibility)}
+            </p>
+            <p className="mt-1 text-sm text-green-800">
+              Approved{" "}
+              {new Date(item.approved_snapshot.approved_at).toLocaleString()}
+            </p>
+          </Card>
+          <section className="panel divide-y divide-line">
+            {item.approved_snapshot.recommended_drills.map(
+              (recommendation, index) => (
+                <div
+                  key={`${recommendation.name}-${index}`}
+                  className="flex flex-col justify-between gap-3 p-5 sm:flex-row"
+                >
+                  <div>
+                    <p className="font-semibold">{recommendation.name}</p>
+                    <p className="mt-1 text-sm text-gray-600">
+                      {recommendation.description}
+                    </p>
+                    <p className="mt-2 text-xs text-gray-500">
+                      {recommendation.reason}
+                    </p>
+                  </div>
+                  <Link
+                    className="shrink-0"
+                    to={`/athletes/${item.athlete_id}?tab=drills&assign=review&review_id=${item.id}&recommendation=${index}`}
+                  >
+                    <Button variant="secondary" icon={Dumbbell}>
+                      Assign
+                    </Button>
+                  </Link>
+                </div>
+              ),
+            )}
+          </section>
+        </div>
       )}
       {item.result && (
         <section>

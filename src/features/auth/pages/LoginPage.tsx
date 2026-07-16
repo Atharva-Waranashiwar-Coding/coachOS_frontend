@@ -8,6 +8,7 @@ import { Button } from "../../../components/common/Button";
 import { FormField, Input } from "../../../components/forms/Fields";
 import { useAuth } from "../hooks/useAuth";
 import { loginSchema, type LoginFormValues } from "../schemas/login.schema";
+import { getRequestedRoute } from "../../../routes/requestedRoute";
 
 export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -20,13 +21,26 @@ export function LoginPage() {
     defaultValues: { email: "", password: "" },
   });
   const from =
-    (location.state as { from?: string } | null)?.from ?? "/dashboard";
+    new URLSearchParams(location.search).get("redirect") ??
+    (location.state as { from?: string } | null)?.from ??
+    getRequestedRoute() ??
+    window.sessionStorage.getItem("coachos.requested-route") ??
+    undefined;
   const submit = form.handleSubmit(async (values) => {
     setServerError("");
+    window.sessionStorage.setItem("coachos.login-in-flight", "true");
     try {
-      await login(values);
-      navigate(from, { replace: true });
+      const currentUser = await login(values);
+      const roleHome =
+        currentUser.role === "athlete" ? "/athlete/dashboard" : "/dashboard";
+      const requestedRouteAllowed =
+        from &&
+        ((currentUser.role === "athlete" && from.startsWith("/athlete")) ||
+          (currentUser.role === "coach" && !from.startsWith("/athlete")));
+      window.sessionStorage.removeItem("coachos.login-in-flight");
+      navigate(requestedRouteAllowed ? from : roleHome, { replace: true });
     } catch (error) {
+      window.sessionStorage.removeItem("coachos.login-in-flight");
       setServerError(
         normalizeApiError(error).status === 401
           ? "Email or password is incorrect."
@@ -36,9 +50,9 @@ export function LoginPage() {
   });
   return (
     <>
-      <h1 className="text-3xl font-bold text-ink">Coach sign in</h1>
+      <h1 className="text-3xl font-bold text-ink">Sign in to CoachOS</h1>
       <p className="mt-2 text-gray-600">
-        Access your athletes and development plans.
+        Continue to your coaching or athlete workspace.
       </p>
       <form className="mt-8 space-y-5" onSubmit={submit} noValidate>
         {serverError && (
@@ -101,8 +115,7 @@ export function LoginPage() {
         </Button>
       </form>
       <p className="mt-8 text-xs leading-5 text-gray-500">
-        Coach access only. Contact your organization administrator if you need
-        an account.
+        Athlete accounts are activated through a coach invitation.
       </p>
     </>
   );
