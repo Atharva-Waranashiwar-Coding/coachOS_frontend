@@ -110,6 +110,7 @@ function invalidateAssignmentData(
       queryKey: ["athletes", athleteId, "timeline"],
     }),
     client.invalidateQueries({ queryKey: queryKeys.dashboard }),
+    client.invalidateQueries({ queryKey: queryKeys.insights.all }),
   ]);
 }
 

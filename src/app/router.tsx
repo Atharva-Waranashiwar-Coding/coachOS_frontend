@@ -33,6 +33,9 @@ import { PublicOnlyRoute } from "../routes/PublicOnlyRoute";
 import { RequireAthleteRoute } from "../routes/RequireAthleteRoute";
 import { RequireCoachRoute } from "../routes/RequireCoachRoute";
 import { UnauthorizedPage } from "../pages/UnauthorizedPage";
+import { AthleteInsightsPage } from "../features/insights/AthleteInsightsPage";
+import { AttentionInsightsPage } from "../features/insights/AttentionInsightsPage";
+import { CoachInsightsPage } from "../features/insights/CoachInsightsPage";
 
 export function AppRouter() {
   return (
@@ -50,6 +53,11 @@ export function AppRouter() {
         <Route element={<CoachAppLayout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/insights" element={<CoachInsightsPage />} />
+          <Route
+            path="/insights/attention"
+            element={<AttentionInsightsPage />}
+          />
           <Route path="/drills" element={<DrillLibraryPage />} />
           <Route path="/drills/new" element={<DrillEditorPage />} />
           <Route path="/drills/:drillId" element={<DrillDetailPage />} />
@@ -80,6 +88,10 @@ export function AppRouter() {
           <Route path="/athletes" element={<AthleteListPage />} />
           <Route path="/athletes/new" element={<AthleteCreatePage />} />
           <Route path="/athletes/:athleteId" element={<AthleteProfilePage />} />
+          <Route
+            path="/athletes/:athleteId/insights"
+            element={<AthleteInsightsPage />}
+          />
           <Route
             path="/athletes/:athleteId/drills"
             element={<AthleteDrillsPage />}

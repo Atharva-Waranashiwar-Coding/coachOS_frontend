@@ -27,6 +27,7 @@ function invalidations(
     client.invalidateQueries({ queryKey: ["athletes", athleteId, "goals"] }),
     client.invalidateQueries({ queryKey: ["athletes", athleteId, "timeline"] }),
     client.invalidateQueries({ queryKey: queryKeys.dashboard }),
+    client.invalidateQueries({ queryKey: queryKeys.insights.all }),
   ]);
 }
 export function useCreateGoal(athleteId: string) {

@@ -1,4 +1,4 @@
-import { Archive, Edit3, RotateCcw } from "lucide-react";
+import { Archive, ChartNoAxesCombined, Edit3, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { normalizeApiError } from "../../../api/api-client";
@@ -80,6 +80,11 @@ export function AthleteProfilePage() {
             <Link to={`/athletes/${athlete.id}/edit`}>
               <Button variant="secondary" icon={Edit3}>
                 Edit
+              </Button>
+            </Link>
+            <Link to={`/athletes/${athlete.id}/insights`}>
+              <Button variant="secondary" icon={ChartNoAxesCombined}>
+                Insights
               </Button>
             </Link>
             {athlete.status === "archived" ? (

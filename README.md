@@ -25,6 +25,7 @@ src/
 │   ├── dashboard/       # Coach dashboard composition
 │   ├── athletes/        # List, profile, create/edit, hooks and types
 │   ├── goals/           # Goal forms, mutations, filters
+│   ├── insights/        # Coach overview, athlete trends, attention queue
 │   ├── timeline/        # Timeline filters and event rendering
 │   ├── ai-review/       # Review queue, request form, generated draft and approval actions
 │   └── drills/          # Library, assignment modes, athlete drill lifecycle
@@ -76,6 +77,9 @@ The default frontend URL is `http://localhost:5173`.
 | `/athletes/new`                             | Protected   | Create an athlete                         |
 | `/athletes/:athleteId`                      | Protected   | Overview, goals, and timeline             |
 | `/athletes/:athleteId/edit`                 | Protected   | Edit an athlete                           |
+| `/athletes/:athleteId/insights`             | Coach       | Athlete progress metrics and source links |
+| `/insights`                                 | Coach       | Coach-wide progress insight overview      |
+| `/insights/attention`                       | Coach       | Filtered athletes-needing-attention queue |
 | `/reviews`                                  | Protected   | AI review queue                           |
 | `/reviews/:reviewId`                        | Protected   | Generated review and coach actions        |
 | `/athletes/:athleteId/reviews`              | Protected   | Athlete-filtered review queue             |
@@ -117,7 +121,7 @@ npm run build
 npm run format
 ```
 
-Tests use MSW and cover authentication, role restoration and route separation, coach workflows, athlete dashboard and feedback rendering, athlete-safe drill detail, progress submission, drill library behavior, timeline, empty/error/loading behavior, and fallback routing.
+Tests use MSW and cover authentication, role restoration and route separation, coach workflows, athlete dashboard and feedback rendering, athlete-safe drill detail, progress submission, drill library behavior, timeline, coach insight ranges, recurring feedback, partial data, privacy exclusions, attention filtering/sorting/pagination, empty/error/loading behavior, and fallback routing.
 
 ## Production Build
 
@@ -140,6 +144,14 @@ docker run --rm -p 8080:80 coachos-frontend
 - Athlete video playback is intentionally omitted until Media Service owns an explicit athlete-visible authorization signal.
 - Bundle code splitting is not yet configured; the current production build reports a non-blocking chunk-size warning.
 
+## Coach Progress Insights
+
+Coach insight reads use the existing Athlete Service base URL and TanStack Query with a three-minute stale time. Range, comparison, custom dates, search, filters, sorting, and pagination are URL search parameters. Previous data remains visible while filters refetch so controls do not unmount during typing.
+
+The UI provides calculation help, comparison values, explicit insufficient/unavailable states, accessible value-labelled bars, partial-data warnings, and links to approved feedback, drill assignments, goals, and athlete profiles. It does not display a leaderboard, hidden score, prediction, raw AI output, coach notes, injury notes, or storage details.
+
+Drill, goal, and review mutations invalidate the shared insight query root. Charts are implemented as lightweight accessible bars; no visualization dependency was added.
+
 ## Future Stages
 
-Later stages can add refresh-token rotation, recurring plans, richer progress insights, secure athlete video playback, and deployment observability without changing the current feature boundaries.
+Later stages can add refresh-token rotation, recurring plans, secure athlete video playback, measured code splitting, and deployment observability without changing the current feature boundaries.

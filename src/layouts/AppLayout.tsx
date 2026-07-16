@@ -1,5 +1,6 @@
 import {
   BrainCircuit,
+  ChartNoAxesCombined,
   Dumbbell,
   LayoutDashboard,
   LogOut,
@@ -17,6 +18,7 @@ import { env } from "../lib/env";
 const nav = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { label: "Athletes", path: "/athletes", icon: Users },
+  { label: "Insights", path: "/insights", icon: ChartNoAxesCombined },
   { label: "Drill Library", path: "/drills", icon: Dumbbell },
   { label: "AI Reviews", path: "/reviews", icon: BrainCircuit },
 ];
@@ -28,6 +30,8 @@ const titles: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/athletes": "Athletes",
   "/athletes/new": "Add athlete",
+  "/insights": "Progress insights",
+  "/insights/attention": "Athletes needing attention",
   "/drills": "Drill library",
   "/drills/new": "Create drill",
 };

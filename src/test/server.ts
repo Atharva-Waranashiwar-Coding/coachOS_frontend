@@ -142,6 +142,203 @@ const page = <T>(items: T[]) => ({
   total_pages: 1,
 });
 
+const insightPeriod = {
+  range: "30d",
+  timezone: "America/New_York",
+  start: "2026-06-17T04:00:00Z",
+  end: "2026-07-17T04:00:00Z",
+  previous_start: "2026-05-18T04:00:00Z",
+  previous_end: "2026-06-17T04:00:00Z",
+  boundary_policy: "start_inclusive_end_exclusive",
+};
+const comparison = (current: number, previous: number) => ({
+  current,
+  previous,
+  absolute_change: current - previous,
+});
+const drillPeriod = {
+  assigned_count: 4,
+  started_count: 3,
+  completed_count: 6,
+  completed_during_period: 3,
+  cancelled_count: 1,
+  active_count: 2,
+  in_progress_count: 1,
+  overdue_count: 1,
+  completion_rate: 75,
+  completion_rate_sample_size: 8,
+  on_time_completion_rate: 66.7,
+  on_time_sample_size: 3,
+  average_completion_days: 4.5,
+  median_completion_days: 4,
+  average_progress_percentage: 45,
+  assignments_due_next_7_days: 1,
+};
+const goalPeriod = {
+  active_count: 2,
+  completed_count: 3,
+  paused_count: 0,
+  cancelled_count: 1,
+  created_during_period: 1,
+  completed_during_period: 1,
+  completion_rate: 60,
+  completion_rate_sample_size: 5,
+  due_next_14_days: 1,
+  overdue_count: 0,
+  next_due_date: "2026-07-24",
+  category_distribution: { speed: 2, fielding: 1 },
+  priority_distribution: { "1": 2, "2": 1 },
+};
+const recurringArea = {
+  key: "hitting.timing",
+  display_label: "Swing timing",
+  taxonomy_code: "hitting.timing",
+  occurrence_count: 3,
+  distinct_review_count: 2,
+  first_seen_at: "2026-06-25T12:00:00Z",
+  last_seen_at: "2026-07-15T12:00:00Z",
+  high_priority_count: 2,
+  related_review_ids: ["review-1", "review-2"],
+  related_assignment_count: 1,
+  current_mentions: 2,
+  previous_mentions: 1,
+  trend: "increasing",
+};
+const attentionFlag = {
+  code: "overdue_drills",
+  severity: "warning",
+  title: "Overdue drill assignments",
+  description: "1 drill assignment is past due.",
+  source: "drills",
+  detected_at: "2026-07-16T12:00:00Z",
+  related_entity_ids: [assignment.id],
+  recommended_action: "Review priorities and adjust the due date.",
+};
+
+export const athleteInsights = {
+  athlete: {
+    id: athlete.id,
+    first_name: athlete.first_name,
+    last_name: athlete.last_name,
+    preferred_name: athlete.preferred_name,
+    primary_position: athlete.primary_position,
+    status: athlete.status,
+  },
+  period: insightPeriod,
+  activity: {
+    practice_sessions_created: comparison(2, 1),
+    practice_sessions_completed: comparison(1, 1),
+    videos_uploaded: comparison(2, 0),
+    approved_reviews: comparison(2, 1),
+    drills_assigned: comparison(4, 2),
+    drills_started: comparison(3, 2),
+    drills_completed: comparison(3, 1),
+    goals_created: comparison(1, 0),
+    goals_completed: comparison(1, 1),
+    athlete_visible_timeline_events: comparison(5, 3),
+    last_qualifying_activity: "2026-07-15T12:00:00Z",
+  },
+  drills: {
+    current: drillPeriod,
+    previous: { ...drillPeriod, completion_rate: 62.5 },
+    completion_trend: {
+      current_value: 75,
+      previous_value: 62.5,
+      absolute_change: 12.5,
+      percentage_point_change: 12.5,
+      direction: "improving",
+      current_sample_size: 8,
+      previous_sample_size: 8,
+    },
+    weekly_completions: [
+      { period_start: "2026-07-01", value: 1 },
+      { period_start: "2026-07-08", value: 2 },
+    ],
+  },
+  goals: {
+    current: goalPeriod,
+    previous: { ...goalPeriod, completion_rate: 50 },
+    completion_trend: {
+      current_value: 60,
+      previous_value: 50,
+      absolute_change: 10,
+      percentage_point_change: 10,
+      direction: "improving",
+      current_sample_size: 5,
+      previous_sample_size: 4,
+    },
+    weekly_completions: [{ period_start: "2026-07-08", value: 1 }],
+  },
+  reviews: {
+    approved_review_count: comparison(2, 1),
+    latest_approved_at: "2026-07-15T12:00:00Z",
+    review_type_distribution: { hitting: 2 },
+    recurring_improvement_areas: [recurringArea],
+    recurring_strengths: [
+      {
+        ...recurringArea,
+        key: "hitting.balance",
+        display_label: "Balanced setup",
+        taxonomy_code: "hitting.balance",
+        high_priority_count: 0,
+        trend: "stable",
+      },
+    ],
+    weekly_approved_reviews: [
+      { period_start: "2026-07-01", value: 1 },
+      { period_start: "2026-07-08", value: 1 },
+    ],
+  },
+  attention_flags: [attentionFlag],
+  trend_summaries: [],
+  recent_milestones: [
+    {
+      athlete_id: athlete.id,
+      athlete_name: "Maya Torres",
+      event_type: "drill_completed",
+      title: "Completed first-step reaction",
+      occurred_at: "2026-07-14T12:00:00Z",
+    },
+  ],
+  data_completeness: {
+    review_data_available: true,
+    media_data_available: false,
+    partial: true,
+    warnings: ["media_data_unavailable"],
+  },
+  generated_at: "2026-07-16T12:00:00Z",
+};
+
+export const attentionItem = {
+  athlete: athleteInsights.athlete,
+  attention_flags: [attentionFlag],
+  overdue_assignment_count: 1,
+  active_assignment_count: 2,
+  last_qualifying_activity: "2026-07-15T12:00:00Z",
+  latest_approved_feedback_date: "2026-07-15T12:00:00Z",
+  next_goal_due_date: "2026-07-24",
+};
+
+export const coachInsights = {
+  period: insightPeriod,
+  active_athlete_count: 1,
+  athletes_with_attention_flags: 1,
+  total_overdue_assignments: 1,
+  total_active_assignments: 2,
+  completed_drills_during_period: 3,
+  approved_reviews_during_period: 2,
+  completed_practice_sessions_during_period: null,
+  top_recurring_improvement_areas: [recurringArea],
+  recent_progress_items: athleteInsights.recent_milestones,
+  attention_items: [attentionItem],
+  attention_page: 1,
+  attention_page_size: 5,
+  attention_total: 1,
+  attention_total_pages: 1,
+  data_completeness: athleteInsights.data_completeness,
+  generated_at: "2026-07-16T12:00:00Z",
+};
+
 export const handlers = [
   http.post("http://localhost:8000/auth/login", () =>
     HttpResponse.json({ access_token: "valid-token", token_type: "bearer" }),
@@ -152,6 +349,28 @@ export const handlers = [
   ),
   http.get("http://localhost:8001/api/v1/athletes", () =>
     HttpResponse.json(page([athlete])),
+  ),
+  http.get(`http://localhost:8001/api/v1/athletes/${athlete.id}/insights`, () =>
+    HttpResponse.json(athleteInsights),
+  ),
+  http.get("http://localhost:8001/api/v1/coach/insights", () =>
+    HttpResponse.json(coachInsights),
+  ),
+  http.get(
+    "http://localhost:8001/api/v1/coach/insights/athletes-needing-attention",
+    ({ request }) => {
+      const requestedPage = Number(
+        new URL(request.url).searchParams.get("page") ?? 1,
+      );
+      return HttpResponse.json({
+        items: [attentionItem],
+        page: requestedPage,
+        page_size: 20,
+        total: 21,
+        total_pages: 2,
+        data_completeness: athleteInsights.data_completeness,
+      });
+    },
   ),
   http.post("http://localhost:8001/api/v1/athletes", async ({ request }) =>
     HttpResponse.json(

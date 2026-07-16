@@ -75,6 +75,7 @@ export function useCreateRevision(id: string) {
         client.invalidateQueries({ queryKey: detail(id) }),
         client.invalidateQueries({ queryKey: [...detail(id), "revisions"] }),
         client.invalidateQueries({ queryKey: [...detail(id), "audit"] }),
+        client.invalidateQueries({ queryKey: ["insights"] }),
       ]),
   });
 }
@@ -97,6 +98,7 @@ export function useApproveReview(id: string) {
         client.invalidateQueries({ queryKey: detail(id) }),
         client.invalidateQueries({ queryKey: [...detail(id), "approved"] }),
         client.invalidateQueries({ queryKey: [...detail(id), "audit"] }),
+        client.invalidateQueries({ queryKey: ["insights"] }),
       ]),
   });
 }

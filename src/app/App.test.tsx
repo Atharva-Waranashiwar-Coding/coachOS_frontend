@@ -6,7 +6,10 @@ import {
   assignment,
   athlete,
   athleteAssignment,
+  athleteInsights,
   athleteUser,
+  attentionItem,
+  coachInsights,
   drill,
   server,
 } from "../test/server";
@@ -613,5 +616,148 @@ describe("athlete workspace", () => {
         athlete_note: "Worked through three rounds.",
       }),
     );
+  });
+});
+
+describe("coach progress insights", () => {
+  it("renders athlete metrics, recurring feedback, partial data, and safe source links", async () => {
+    authenticate();
+    renderApp(`/athletes/${athlete.id}/insights?range=30d&compare=true`);
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "MJ's progress insights",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Some insight data is temporarily unavailable"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Swing timing")).toBeInTheDocument();
+    expect(
+      screen.getAllByText("Mentioned in 2 approved reviews").length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole("link", { name: "View related feedback" })[0],
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("link", { name: "View related feedback" })[0],
+    ).toHaveAttribute("href", `/athletes/${athlete.id}/reviews`);
+    expect(
+      screen.getByLabelText("Weekly drill completions"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(athlete.injury_notes)).not.toBeInTheDocument();
+    expect(screen.queryByText("Private cue")).not.toBeInTheDocument();
+    expect(screen.queryByText(/raw ai output/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps the range and comparison controls in the request URL", async () => {
+    authenticate();
+    const requests: URL[] = [];
+    server.use(
+      http.get(
+        `http://localhost:8001/api/v1/athletes/${athlete.id}/insights`,
+        ({ request }) => {
+          requests.push(new URL(request.url));
+          return HttpResponse.json(athleteInsights);
+        },
+      ),
+    );
+    const user = userEvent.setup();
+    renderApp(`/athletes/${athlete.id}/insights`);
+    await screen.findByText("Swing timing");
+
+    await user.selectOptions(screen.getByLabelText("Date range"), "7d");
+    await user.click(screen.getByLabelText("Compare previous period"));
+
+    await waitFor(() =>
+      expect(
+        requests.some(
+          (url) =>
+            url.searchParams.get("range") === "7d" &&
+            url.searchParams.get("compare") === "false",
+        ),
+      ).toBe(true),
+    );
+  });
+
+  it("renders the coach overview without a leaderboard", async () => {
+    authenticate();
+    renderApp("/insights?range=30d");
+
+    expect(
+      await screen.findByRole("heading", { name: "Progress insights" }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText("Attention preview")).toBeInTheDocument();
+    expect(screen.getByText("Recent progress")).toBeInTheDocument();
+    expect(screen.getAllByText("Swing timing").length).toBeGreaterThan(0);
+    expect(screen.queryByText(/leaderboard/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/score/i)).not.toBeInTheDocument();
+    expect(coachInsights.completed_practice_sessions_during_period).toBeNull();
+  });
+
+  it("filters, sorts, paginates, and opens an athlete from the attention queue", async () => {
+    authenticate();
+    const requests: URL[] = [];
+    server.use(
+      http.get(
+        "http://localhost:8001/api/v1/coach/insights/athletes-needing-attention",
+        ({ request }) => {
+          const url = new URL(request.url);
+          requests.push(url);
+          return HttpResponse.json({
+            items: [attentionItem],
+            page: Number(url.searchParams.get("page") ?? 1),
+            page_size: 20,
+            total: 21,
+            total_pages: 2,
+            data_completeness: athleteInsights.data_completeness,
+          });
+        },
+      ),
+    );
+    const user = userEvent.setup();
+    renderApp("/insights/attention");
+
+    expect(await screen.findByText("Maya Torres")).toBeInTheDocument();
+    expect(screen.getByText(/Latest feedback:/)).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText("Severity"), "warning");
+    await waitFor(() =>
+      expect(
+        requests.some((url) => url.searchParams.get("severity") === "warning"),
+      ).toBe(true),
+    );
+    await user.selectOptions(
+      screen.getByLabelText("Sort attention items"),
+      "overdue_count",
+    );
+    await waitFor(() =>
+      expect(
+        requests.some(
+          (url) =>
+            url.searchParams.get("severity") === "warning" &&
+            url.searchParams.get("sort_by") === "overdue_count",
+        ),
+      ).toBe(true),
+    );
+    await user.type(screen.getByLabelText("Search attention items"), "Maya");
+    await waitFor(() =>
+      expect(
+        requests.some(
+          (url) =>
+            url.searchParams.get("severity") === "warning" &&
+            url.searchParams.get("sort_by") === "overdue_count" &&
+            url.searchParams.get("search") === "Maya",
+        ),
+      ).toBe(true),
+    );
+    await user.click(screen.getByRole("button", { name: "Next page" }));
+    await waitFor(() =>
+      expect(requests.some((url) => url.searchParams.get("page") === "2")).toBe(
+        true,
+      ),
+    );
+    expect(
+      screen.getByRole("link", { name: "Open Maya insights" }),
+    ).toHaveAttribute("href", `/athletes/${athlete.id}/insights`);
   });
 });

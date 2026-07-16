@@ -20,6 +20,13 @@ export const queryKeys = {
     detail: (id: string) => ["drills", "detail", id] as const,
   },
   dashboard: ["dashboard"] as const,
+  insights: {
+    all: ["insights"] as const,
+    coach: (filters: object) => ["insights", "coach", filters] as const,
+    athlete: (athleteId: string, filters: object) =>
+      ["insights", "athlete", athleteId, filters] as const,
+    attention: (filters: object) => ["insights", "attention", filters] as const,
+  },
   athlete: {
     me: ["athlete", "me"] as const,
     dashboard: ["athlete", "dashboard"] as const,
