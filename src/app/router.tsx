@@ -4,6 +4,7 @@ import { AthleteEditPage } from "../features/athletes/pages/AthleteEditPage";
 import { AthleteListPage } from "../features/athletes/pages/AthleteListPage";
 import { AthleteProfilePage } from "../features/athletes/pages/AthleteProfilePage";
 import { LoginPage } from "../features/auth/pages/LoginPage";
+import { SignupPage } from "../features/auth/pages/SignupPage";
 import { AcceptInvitationPage } from "../features/auth/pages/AcceptInvitationPage";
 import { AthleteDashboardPage } from "../features/athlete-dashboard/AthleteDashboardPage";
 import { AthleteFeedbackDetailPage } from "../features/athlete-feedback/AthleteFeedbackDetailPage";
@@ -43,6 +44,7 @@ export function AppRouter() {
       <Route element={<PublicOnlyRoute />}>
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
           <Route
             path="/invitations/accept"
             element={<AcceptInvitationPage />}

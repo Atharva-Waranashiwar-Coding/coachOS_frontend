@@ -340,6 +340,9 @@ export const coachInsights = {
 };
 
 export const handlers = [
+  http.post("http://localhost:8000/auth/signup", () =>
+    HttpResponse.json(user, { status: 201 }),
+  ),
   http.post("http://localhost:8000/auth/login", () =>
     HttpResponse.json({ access_token: "valid-token", token_type: "bearer" }),
   ),

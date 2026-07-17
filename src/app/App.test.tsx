@@ -16,6 +16,36 @@ import {
 import { authenticate, renderApp } from "../test/renderApp";
 
 describe("authentication", () => {
+  it("creates a coach account and opens the workspace", async () => {
+    const user = userEvent.setup();
+    renderApp("/signup");
+    expect(
+      await screen.findByRole("heading", {
+        name: "Create your coach account",
+      }),
+    ).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Email"), "new-coach@example.com");
+    await user.type(screen.getByLabelText("Password"), "secure-password");
+    await user.type(
+      screen.getByLabelText("Confirm password"),
+      "secure-password",
+    );
+    await user.click(screen.getByRole("button", { name: "Create account" }));
+    expect(await screen.findByText("Welcome back")).toBeInTheDocument();
+  });
+
+  it("validates matching signup passwords", async () => {
+    const user = userEvent.setup();
+    renderApp("/signup");
+    await user.type(await screen.findByLabelText("Email"), "coach@example.com");
+    await user.type(screen.getByLabelText("Password"), "secure-password");
+    await user.type(screen.getByLabelText("Confirm password"), "different");
+    await user.click(screen.getByRole("button", { name: "Create account" }));
+    expect(
+      await screen.findByText("Passwords do not match"),
+    ).toBeInTheDocument();
+  });
+
   it("logs in and opens the coach workspace", async () => {
     const user = userEvent.setup();
     renderApp("/athletes");

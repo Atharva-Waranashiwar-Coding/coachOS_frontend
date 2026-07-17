@@ -3,7 +3,15 @@ import type {
   AuthUser,
   LoginCredentials,
   LoginResponse,
+  SignupCredentials,
 } from "../features/auth/types";
+
+export async function signup(
+  credentials: SignupCredentials,
+): Promise<AuthUser> {
+  const { data } = await authClient.post<AuthUser>("/auth/signup", credentials);
+  return data;
+}
 
 export async function login(
   credentials: LoginCredentials,

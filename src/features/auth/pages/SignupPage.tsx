@@ -1,58 +1,46 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, LogIn } from "lucide-react";
+import { Eye, EyeOff, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { signup } from "../../../api/auth.api";
 import { normalizeApiError } from "../../../api/api-client";
 import { Button } from "../../../components/common/Button";
 import { FormField, Input } from "../../../components/forms/Fields";
 import { useAuth } from "../hooks/useAuth";
-import { loginSchema, type LoginFormValues } from "../schemas/login.schema";
-import { getRequestedRoute } from "../../../routes/requestedRoute";
+import { signupSchema, type SignupFormValues } from "../schemas/signup.schema";
 
-export function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false);
+export function SignupPage() {
+  const [showPasswords, setShowPasswords] = useState(false);
   const [serverError, setServerError] = useState("");
   const { login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+  const form = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: { email: "", password: "", passwordConfirmation: "" },
   });
-  const from =
-    new URLSearchParams(location.search).get("redirect") ??
-    (location.state as { from?: string } | null)?.from ??
-    getRequestedRoute() ??
-    window.sessionStorage.getItem("coachos.requested-route") ??
-    undefined;
+
   const submit = form.handleSubmit(async (values) => {
     setServerError("");
-    window.sessionStorage.setItem("coachos.login-in-flight", "true");
     try {
-      const currentUser = await login(values);
-      const roleHome =
-        currentUser.role === "athlete" ? "/athlete/dashboard" : "/dashboard";
-      const requestedRouteAllowed =
-        from &&
-        ((currentUser.role === "athlete" && from.startsWith("/athlete")) ||
-          (currentUser.role === "coach" && !from.startsWith("/athlete")));
-      window.sessionStorage.removeItem("coachos.login-in-flight");
-      navigate(requestedRouteAllowed ? from : roleHome, { replace: true });
+      await signup({ email: values.email, password: values.password });
+      await login({ email: values.email, password: values.password });
+      navigate("/dashboard", { replace: true });
     } catch (error) {
-      window.sessionStorage.removeItem("coachos.login-in-flight");
+      const apiError = normalizeApiError(error);
       setServerError(
-        normalizeApiError(error).status === 401
-          ? "Email or password is incorrect."
-          : normalizeApiError(error).message,
+        apiError.status === 409
+          ? "An account with this email already exists."
+          : apiError.message,
       );
     }
   });
+
   return (
     <>
-      <h1 className="text-3xl font-bold text-ink">Sign in to CoachOS</h1>
+      <h1 className="text-3xl font-bold text-ink">Create your coach account</h1>
       <p className="mt-2 text-gray-600">
-        Continue to your coaching or athlete workspace.
+        Start organizing athletes, goals, and development work in CoachOS.
       </p>
       <form className="mt-8 space-y-5" onSubmit={submit} noValidate>
         {serverError && (
@@ -65,11 +53,11 @@ export function LoginPage() {
         )}
         <FormField
           label="Email"
-          htmlFor="email"
+          htmlFor="signup-email"
           error={form.formState.errors.email?.message}
         >
           <Input
-            id="email"
+            id="signup-email"
             type="email"
             autoComplete="email"
             autoFocus
@@ -79,14 +67,15 @@ export function LoginPage() {
         </FormField>
         <FormField
           label="Password"
-          htmlFor="password"
+          htmlFor="signup-password"
+          hint="Use at least 8 characters."
           error={form.formState.errors.password?.message}
         >
           <div className="relative">
             <Input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              autoComplete="current-password"
+              id="signup-password"
+              type={showPasswords ? "text" : "password"}
+              autoComplete="new-password"
               className="pr-11"
               aria-invalid={Boolean(form.formState.errors.password)}
               {...form.register("password")}
@@ -94,10 +83,10 @@ export function LoginPage() {
             <button
               type="button"
               className="absolute inset-y-0 right-0 grid w-11 place-items-center text-gray-500"
-              onClick={() => setShowPassword((shown) => !shown)}
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              onClick={() => setShowPasswords((shown) => !shown)}
+              aria-label={showPasswords ? "Hide passwords" : "Show passwords"}
             >
-              {showPassword ? (
+              {showPasswords ? (
                 <EyeOff className="h-4 w-4" />
               ) : (
                 <Eye className="h-4 w-4" />
@@ -105,26 +94,40 @@ export function LoginPage() {
             </button>
           </div>
         </FormField>
+        <FormField
+          label="Confirm password"
+          htmlFor="signup-password-confirmation"
+          error={form.formState.errors.passwordConfirmation?.message}
+        >
+          <Input
+            id="signup-password-confirmation"
+            type={showPasswords ? "text" : "password"}
+            autoComplete="new-password"
+            aria-invalid={Boolean(form.formState.errors.passwordConfirmation)}
+            {...form.register("passwordConfirmation")}
+          />
+        </FormField>
         <Button
           type="submit"
-          icon={LogIn}
+          icon={UserPlus}
           isLoading={form.formState.isSubmitting}
           className="w-full"
         >
-          Sign in
+          Create account
         </Button>
       </form>
       <p className="mt-7 text-center text-sm text-gray-600">
-        New to CoachOS?{" "}
+        Already have an account?{" "}
         <Link
           className="font-semibold text-brand-700 hover:underline"
-          to="/signup"
+          to="/login"
         >
-          Create a coach account
+          Sign in
         </Link>
       </p>
-      <p className="mt-8 text-xs leading-5 text-gray-500">
-        Athlete accounts are activated through a coach invitation.
+      <p className="mt-4 text-xs leading-5 text-gray-500">
+        Signing up creates a coach account. Athlete accounts are activated
+        through a coach invitation.
       </p>
     </>
   );
