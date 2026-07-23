@@ -39,6 +39,7 @@ export const authClient = withAuthentication(env.authApiUrl);
 export const athleteClient = withAuthentication(env.athleteApiUrl);
 export const aiReviewClient = withAuthentication(env.aiReviewApiUrl);
 export const mediaClient = withAuthentication(env.mediaApiUrl);
+export const assistantClient = withAuthentication(env.assistantApiUrl);
 
 interface ValidationIssue {
   loc?: Array<string | number>;

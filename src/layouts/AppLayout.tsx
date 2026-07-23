@@ -1,5 +1,6 @@
 import {
   BrainCircuit,
+  MessageCircle,
   ChartNoAxesCombined,
   Dumbbell,
   LayoutDashboard,
@@ -22,6 +23,7 @@ const nav = [
   { label: "Drill Library", path: "/drills", icon: Dumbbell },
   { label: "AI Reviews", path: "/reviews", icon: BrainCircuit },
   { label: "Videos", path: "/videos", icon: Video },
+  { label: "Assistant", path: "/assistant", icon: MessageCircle },
 ];
 const future = [{ label: "Settings", icon: Settings }];
 const titles: Record<string, string> = {
@@ -33,6 +35,7 @@ const titles: Record<string, string> = {
   "/drills": "Drill library",
   "/drills/new": "Create drill",
   "/videos": "Videos",
+  "/assistant": "CoachOS Assistant",
 };
 
 function Navigation({ onNavigate }: { onNavigate?: () => void }) {

@@ -17,6 +17,7 @@ const envSchema = z.object({
   VITE_ATHLETE_API_URL: apiBaseUrl,
   VITE_AI_REVIEW_API_URL: apiBaseUrl,
   VITE_MEDIA_API_URL: apiBaseUrl,
+  VITE_ASSISTANT_API_URL: apiBaseUrl,
 });
 
 const parsed = envSchema.safeParse(import.meta.env);
@@ -34,5 +35,6 @@ export const env = {
   athleteApiUrl: parsed.data.VITE_ATHLETE_API_URL,
   aiReviewApiUrl: parsed.data.VITE_AI_REVIEW_API_URL,
   mediaApiUrl: parsed.data.VITE_MEDIA_API_URL,
+  assistantApiUrl: parsed.data.VITE_ASSISTANT_API_URL,
   isDevelopment: parsed.data.VITE_APP_ENV === "development",
 } as const;
