@@ -37,6 +37,7 @@ import { UnauthorizedPage } from "../pages/UnauthorizedPage";
 import { AthleteInsightsPage } from "../features/insights/AthleteInsightsPage";
 import { AttentionInsightsPage } from "../features/insights/AttentionInsightsPage";
 import { CoachInsightsPage } from "../features/insights/CoachInsightsPage";
+import { VideosPage } from "../features/videos/VideosPage";
 
 export function AppRouter() {
   return (
@@ -65,6 +66,7 @@ export function AppRouter() {
           <Route path="/drills/:drillId" element={<DrillDetailPage />} />
           <Route path="/drills/:drillId/edit" element={<DrillEditorPage />} />
           <Route path="/reviews" element={<ReviewsPage />} />
+          <Route path="/videos" element={<VideosPage />} />
           <Route path="/reviews/:reviewId" element={<ReviewDetailPage />} />
           <Route path="/reviews/:reviewId/edit" element={<ReviewEditPage />} />
           <Route

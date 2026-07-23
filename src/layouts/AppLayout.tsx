@@ -21,11 +21,9 @@ const nav = [
   { label: "Insights", path: "/insights", icon: ChartNoAxesCombined },
   { label: "Drill Library", path: "/drills", icon: Dumbbell },
   { label: "AI Reviews", path: "/reviews", icon: BrainCircuit },
+  { label: "Videos", path: "/videos", icon: Video },
 ];
-const future = [
-  { label: "Videos", icon: Video },
-  { label: "Settings", icon: Settings },
-];
+const future = [{ label: "Settings", icon: Settings }];
 const titles: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/athletes": "Athletes",
@@ -34,6 +32,7 @@ const titles: Record<string, string> = {
   "/insights/attention": "Athletes needing attention",
   "/drills": "Drill library",
   "/drills/new": "Create drill",
+  "/videos": "Videos",
 };
 
 function Navigation({ onNavigate }: { onNavigate?: () => void }) {
