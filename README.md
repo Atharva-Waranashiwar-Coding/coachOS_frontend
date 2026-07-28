@@ -137,7 +137,7 @@ docker build -t coachos-frontend .
 docker run --rm -p 8080:8080 coachos-frontend
 ```
 
-Production images default API base URLs to same-origin paths: `/auth-api`, `/athlete-api`, `/media-api`, and `/ai-review-api`. The edge Nginx configuration in `coachos-infra` routes those paths to internal services, applies HTTPS and rate limits, and avoids exposing backend ports publicly.
+Production images default API base URLs to same-origin paths: `/api/auth`, `/api/athletes`, `/api/media`, `/api/reviews`, and `/assistant-api`. The edge Nginx configuration in `coachos-infra` routes those paths to internal services, applies HTTPS and rate limits, and avoids exposing backend ports publicly.
 
 ## CI And Operations
 
